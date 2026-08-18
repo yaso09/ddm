@@ -33,6 +33,11 @@ ddm-train --config configs/ddm_base.yaml --max-steps 1000 --epochs 1
 Every config is a YAML file under `configs/`; see
 [`src/ddm/config.py`](src/ddm/config.py) for all fields.
 
+```bash
+# Chat with a trained model (streaming output in the terminal):
+ddm-chat --checkpoint checkpoints/ddm_seed0.pt
+```
+
 ## Reproducing the experiments
 
 The six notebooks under `notebooks/` reproduce the whole study end to end:
@@ -45,6 +50,7 @@ The six notebooks under `notebooks/` reproduce the whole study end to end:
 | `04_Benchmark.ipynb` | Bigram vs 3-gram vs DDM vs Transformer (matched params), position buckets |
 | `05_Ablation.ipynb` | Learned gate vs frozen $1/k$ gate; head-wise Welch $t$-tests |
 | `06_Scaling.ipynb` | PPL / parameters / wall time across three model sizes |
+| `07_Chat.ipynb` | Chat with trained models: comparisons, sampling sweep, segment-memory demo, interactive widget |
 
 Results tables are written to `checkpoints/benchmark_results.md` and
 `checkpoints/scaling_results.md`.
@@ -56,8 +62,9 @@ python -m pytest tests/ -v
 ruff check src/ tests/
 ```
 
-47 tests cover tensor shapes, causality, the pre-softmax gate, segment
-memory, and ablation equivalence (model coverage ≥ 90%).
+59 tests cover tensor shapes, causality, the pre-softmax gate, segment
+memory, ablation equivalence, generation and the chat REPL (model
+coverage ≥ 90%).
 
 ## Project layout
 
@@ -65,7 +72,7 @@ memory, and ablation equivalence (model coverage ≥ 90%).
 configs/       experiment YAML configs
 notebooks/     01-06 executable analysis notebooks
 paper/         paper.md, paper.pdf, build.sh / build.py
-src/ddm/       package: config, models, data, train, viz, cli
+src/ddm/       package: config, models, data, train, generate, viz, cli, chat
 tests/         pytest suite
 checkpoints/   run artifacts (weights/results, git-ignored)
 ```
