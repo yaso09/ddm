@@ -1,0 +1,28 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info/
+
+# Virtual environments
+.venv
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# HuggingFace / dataset caches
+hf_cache/
+
+.ruff_cache
+
+# Model checkpoints and run artifacts (weights/results are NOT committed)
+checkpoints/*
+!checkpoints/.gitkeep

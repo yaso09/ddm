@@ -1,0 +1,19 @@
+# Scaling study (large): DDM and transformer at the same size
+model_type: ddm
+d_model: 256
+n_layers: 2
+n_heads: 8
+max_seq_len: 128
+learn_g: true
+dropout: 0.0
+batch_size: 32
+lr: 3.0e-4
+epochs: 3
+seeds: [0]
+dataset_name: wikitext
+dataset_config: wikitext-2-raw-v1
+cache_dir: hf_cache
+shuffle: false
+eval_buckets: [[0, 10], [10, 50], [50, 200]]
+log_every: 50
+save_dir: checkpoints
