@@ -141,6 +141,7 @@ def generate(
             if next_id == tokenizer.eos_token_id:
                 break
             generated.append(next_id)
+            context.append(next_id)
             if on_token is not None:
                 on_token(tokenizer.decode([next_id]))
     elapsed = max(time.time() - t0, 1e-9)
