@@ -41,6 +41,7 @@ dev = [
 
 [project.scripts]
 ddm-train = "ddm.cli:main"
+ddm-chat = "ddm.chat:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ddm"]
