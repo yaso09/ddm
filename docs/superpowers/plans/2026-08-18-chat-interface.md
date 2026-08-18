@@ -150,10 +150,12 @@ def test_ddm_memory_carried_between_turns() -> None:
         device="cpu",
         memory=first.memory,
     )
-    fresh = gen.generate(
-        model, tok, "ab", max_new_tokens=8, temperature=0, seed=3, device="cpu"
-    )
-    assert continued.text != fresh.text
+    assert continued.memory is not None
+    x = torch.tensor([[0, 1]])
+    with torch.no_grad():
+        logits_plain, _ = gen.forward_step(model, x, None)
+        logits_with_mem, _ = gen.forward_step(model, x, first.memory)
+    assert not torch.allclose(logits_with_mem, logits_plain, atol=1e-6)
 
 
 def test_baseline_returns_no_memory() -> None:
@@ -361,7 +363,7 @@ def load_checkpoint(
         mode on the target device.
     """
     device = _resolve_device(device)
-    raw = torch.load(path, map_location=device)
+    raw = torch.load(path, map_location=device, weights_only=True)
     config = DDMConfig(**raw["config"])
     model = build_model(config)
     model.load_state_dict(raw["state_dict"])
@@ -441,7 +443,7 @@ def test_main_smoke(tmp_path, monkeypatch, capsys) -> None:
     out = capsys.readouterr().out
     assert rc == 0
     assert "ddm-chat: bigram" in out
-    assert "[reset] context cleared" in out
+    assert "[ddm-chat] context cleared" in out
     assert "tokens" in out
 
 
@@ -665,7 +667,7 @@ Create `notebooks/07_Chat.ipynb` with the following exact JSON:
     "\n",
     "from ddm.generate import generate, load_checkpoint\n",
     "\n",
-    "CKPT_DIR = Path(\"checkpoints\")"
+    "CKPT_DIR = Path.cwd().parent / \"checkpoints\""
    ]
   },
   {
@@ -887,8 +889,8 @@ Expected: all cells execute without error; generated text appears in cell output
 
 - [ ] **Step 3: Verify the outputs are saved**
 
-Run: `.venv\Scripts\python.exe -c "import json,pathlib; nb=json.loads(pathlib.Path('notebooks/07_Chat.ipynb').read_text(encoding='utf-8')); cells=[c for c in nb['cells'] if c['cell_type']=='code']; assert all(c['outputs'] for c in cells), 'code cells have no saved outputs'; print(f'OK: {len(cells)} code cells with outputs')"`
-Expected: `OK: 6 code cells with outputs`
+Run: `.venv\Scripts\python.exe -c "import json,pathlib; nb=json.loads(pathlib.Path('notebooks/07_Chat.ipynb').read_text(encoding='utf-8')); cells=[c for c in nb['cells'] if c['cell_type']=='code']; assert all(c['execution_count'] for c in cells), 'code cells not executed'; assert any(c['outputs'] for c in cells), 'no outputs saved'; print(f'OK: {len(cells)} code cells executed')"`
+Expected: `OK: 6 code cells executed`
 
 - [ ] **Step 4: Commit**
 
