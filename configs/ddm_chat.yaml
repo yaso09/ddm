@@ -1,0 +1,23 @@
+# DDM trained from scratch on a dialogue dataset (agentlans/li2017dailydialog,
+# a parquet-native ShareGPT-format mirror of DailyDialog) instead of
+# WikiText-2, so the model only ever sees "User: ... / Assistant: ..."
+# transcripts and learns the turn-taking format directly, with no
+# instruction-tuning / loss-masking step needed.
+model_type: ddm
+d_model: 128
+n_layers: 2
+n_heads: 4
+max_seq_len: 128
+learn_g: true
+dropout: 0.0
+batch_size: 32
+lr: 3.0e-4
+epochs: 14
+seeds: [0]
+dataset_name: agentlans/li2017dailydialog
+dataset_config: default
+cache_dir: hf_cache
+shuffle: false
+eval_buckets: [[0, 10], [10, 50], [50, 200]]
+log_every: 50
+save_dir: checkpoints

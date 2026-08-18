@@ -8,6 +8,7 @@ fixed-length blocks; the target for ``logits[:, t]`` is ``x[:, t + 1]``
 
 from __future__ import annotations
 
+import json
 import shutil
 import urllib.request
 from pathlib import Path
@@ -18,10 +19,28 @@ from datasets import load_dataset
 from torch.utils.data import DataLoader, Dataset
 from transformers import AutoTokenizer
 
-DATASET_URL = (
-    "https://huggingface.co/datasets/{name}/resolve/main/"
-    "{config}/{split}-00000-of-00001.parquet"
-)
+
+def _hf_parquet_urls(repo_id: str, config: str, split: str) -> list[str]:
+    """Query HF's public parquet-conversion API for a split's file URLs.
+
+    This is the same endpoint the Hub's own dataset viewer uses
+    (``https://huggingface.co/api/datasets/{repo_id}/parquet/{config}/{split}``)
+    and works for any dataset that has an auto-converted parquet mirror,
+    regardless of whether the original repo ships a loading script. Large
+    splits are returned as multiple part files.
+
+    Args:
+        repo_id: Dataset repo id, e.g. ``agentlans/li2017dailydialog``.
+        config: Dataset config/subset name (``"default"`` if the dataset has
+            none of its own).
+        split: Split name (``train`` / ``validation`` / ``test``).
+
+    Returns:
+        List of parquet file URLs for that split (usually one).
+    """
+    api_url = f"https://huggingface.co/api/datasets/{repo_id}/parquet/{config}/{split}"
+    with urllib.request.urlopen(api_url, timeout=60) as resp:
+        return json.loads(resp.read())
 
 
 def _download_parquet(url: str, dest: Path) -> Path:
@@ -42,6 +61,53 @@ def _download_parquet(url: str, dest: Path) -> Path:
         shutil.copyfileobj(resp, fh)
     tmp.rename(dest)
     return dest
+
+
+# Datasets whose useful content is a list-of-turns field rather than a flat
+# ``text`` column. Each entry maps dataset_name -> the field holding the list
+# of turns (see ``_format_dialog``); a turn is either a plain string
+# (alternating User/Assistant) or a ``{"from": ..., "value": ...}`` dict
+# (ShareGPT-style roles).
+DIALOG_DATASETS: dict[str, str] = {
+    # ShareGPT-format mirror of DailyDialog: parquet-native, no loading
+    # script, so it doesn't hit the "scripts no longer supported" wall that
+    # the canonical li2017dailydialog/daily_dialog repo does.
+    "agentlans/li2017dailydialog": "conversations",
+}
+
+SPEAKER_TAGS: tuple[str, str] = ("User", "Assistant")
+ROLE_TAGS: dict[str, str] = {
+    "human": "User",
+    "user": "User",
+    "gpt": "Assistant",
+    "assistant": "Assistant",
+    # "system" is intentionally omitted -> those turns are dropped.
+}
+
+
+def _format_dialog(turns: list[Any]) -> str:
+    """Render a list of turns as a User/Assistant transcript.
+
+    Args:
+        turns: Either plain strings (alternating speakers, starting with the
+            user) or ``{"from": role, "value": text}`` dicts (ShareGPT-style;
+            ``system`` turns are dropped, unrecognized roles are dropped).
+
+    Returns:
+        A single string with one ``"User: ..."`` / ``"Assistant: ..."`` line
+        per turn, empty utterances dropped.
+    """
+    lines: list[str] = []
+    for i, turn in enumerate(turns):
+        if isinstance(turn, dict):
+            tag = ROLE_TAGS.get(str(turn.get("from", "")).lower())
+            text = str(turn.get("value", "")).strip()
+        else:
+            tag = SPEAKER_TAGS[i % 2]
+            text = str(turn).strip()
+        if tag and text:
+            lines.append(f"{tag}: {text}")
+    return "\n".join(lines)
 
 
 def _load_dataset(
@@ -67,19 +133,24 @@ def _load_dataset(
         The loaded dataset (``DatasetDict``-like object).
     """
     try:
-        return load_dataset(dataset_name, dataset_config, cache_dir=cache_dir)
+        if dataset_config:
+            return load_dataset(dataset_name, dataset_config, cache_dir=cache_dir)
+        return load_dataset(dataset_name, cache_dir=cache_dir)
     except Exception as exc:  # noqa: BLE001 - fall back for any loader issue
         print(
             f"[data] script-based loading failed ({type(exc).__name__}: {exc}); "
-            "switching to local parquet fallback..."
+            "switching to HF parquet API fallback..."
         )
-        data_files: dict[str, str] = {}
+        config_for_api = dataset_config or "default"
+        safe_name = dataset_name.replace("/", "__")
+        data_files: dict[str, list[str]] = {}
         for split in ("train", "validation", "test"):
-            url = DATASET_URL.format(
-                name=dataset_name, config=dataset_config, split=split
-            )
-            dest = Path(cache_dir) / f"{dataset_config}_{split}.parquet"
-            data_files[split] = str(_download_parquet(url, dest))
+            urls = _hf_parquet_urls(dataset_name, config_for_api, split)
+            local_paths = []
+            for i, url in enumerate(urls):
+                dest = Path(cache_dir) / f"{safe_name}_{config_for_api}_{split}_{i}.parquet"
+                local_paths.append(str(_download_parquet(url, dest)))
+            data_files[split] = local_paths
         return load_dataset("parquet", data_files=data_files, cache_dir=cache_dir)
 
 
@@ -126,8 +197,17 @@ def load_and_tokenize(
     tokenizer = _get_tokenizer()
 
     def tokenize_split(split_name: str) -> torch.Tensor:
-        texts = [t for t in ds[split_name]["text"] if t.strip() != ""]
-        joined = "\n".join(texts)
+        if dataset_name in DIALOG_DATASETS:
+            field = DIALOG_DATASETS[dataset_name]
+            texts = [
+                _format_dialog(turns) for turns in ds[split_name][field] if turns
+            ]
+            # Blank line between conversations so the model can learn where
+            # one dialogue ends and the next begins.
+            joined = "\n\n".join(t for t in texts if t)
+        else:
+            texts = [t for t in ds[split_name]["text"] if t.strip() != ""]
+            joined = "\n".join(texts)
         ids = tokenizer(joined, return_tensors="pt")["input_ids"][0]
         n_blocks = len(ids) // seq_len
         blocks = ids[: n_blocks * seq_len].view(n_blocks, seq_len)
