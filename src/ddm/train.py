@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import math
 import random
 import time
@@ -12,6 +13,7 @@ from typing import Any
 import numpy as np
 import torch
 import torch.nn.functional as F
+from safetensors.torch import save_file
 from torch import nn
 from torch.utils.data import DataLoader
 
@@ -216,8 +218,8 @@ def run_training(config: DDMConfig) -> dict[str, Any]:
     For every seed in ``config.seeds``: seed everything, build the model,
     train for ``config.epochs``, evaluate on validation each epoch and on
     test at the end (mean PPL + position-bucket PPL). Artifacts are written
-    into ``config.save_dir``: the checkpoint ``{model}_seed{n}.pt``, the
-    learned g(k) curve (``.png``/``.npz``) for DDM models and a loss/val
+    into ``config.save_dir``: the checkpoint ``{model}_seed{n}.safetensors``,
+    the learned g(k) curve (``.png``/``.npz``) for DDM models and a loss/val
     curve plot.
 
     Args:
@@ -283,10 +285,11 @@ def run_training(config: DDMConfig) -> dict[str, Any]:
         print(f"[train] test PPL: {test_ppl:.2f} ({wall_time:.1f}s)")
 
         stem = f"{config.model_type}_seed{seed}"
-        ckpt_path = save_dir / f"{stem}.pt"
-        torch.save(
-            {"state_dict": model.state_dict(), "config": asdict(config)},
+        ckpt_path = save_dir / f"{stem}.safetensors"
+        save_file(
+            {k: v.detach().cpu() for k, v in model.state_dict().items()},
             ckpt_path,
+            metadata={"config": json.dumps(asdict(config))},
         )
         g_curve_path: str | None = None
         if isinstance(model, DDMModel):

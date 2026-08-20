@@ -169,7 +169,7 @@ ardından standart ileri beslemeli blok, artık bağlantı ve katman normalizasy
 - **Optimizasyon**: AdamW, öğrenme oranı $3\times 10^{-4}$, parti boyutu 64, çapraz entropi kaybı; çalıştırmalar birden çok tohumla tekrarlanır ve ortalama $\pm$ std raporlanır.
 - **Değerlendirme**: test şaşkınlığı; uzun geçmişin gerçekten yardımcı olup olmadığını ortaya çıkarmak için $(0,10)$, $(10,50)$, $(50,200)$ aralıklarında konum başına aralık şaşkınlığı; öğrenilen kapı eğrisi $g(k)$ katman başına kaydedilip çizdirilir; kafa eğimlerinin anlamlı biçimde farklılaşıp farklılaşmadığı kafa bazlı bir Welch $t$-testiyle sınanır.
 
-Tam, yeniden üretilebilir iş akışı `notebooks/` dizinindeki `04_Benchmark.ipynb` ve `05_Ablation.ipynb`'dir; aşağıdaki tablolar bu notebook'lar tarafından üretilir (`checkpoints/benchmark_results.md`, `checkpoints/scaling_results.md`). Burada gösterilen sayılar, mimarinin daha önceki bir yinelemesinin ön
+Tam, yeniden üretilebilir iş akışı `notebooks/` dizinindeki `notebooks/04_Benchmark.ipynb` ve `notebooks/05_Ablation.ipynb`'dir; aşağıdaki tablolar bu notebook'lar tarafından üretilir (`checkpoints/benchmark_results.md`, `checkpoints/scaling_results.md`). Burada gösterilen sayılar, mimarinin daha önceki bir yinelemesinin ön
 sonuçlarıdır (depo geçmişinde saklıdır); commit'lenmiş notebook'lar nihai
 sayıları bu depodaki koddan yeniden üretir.
 
@@ -195,7 +195,7 @@ Kapıyı $1/k$'de dondurmak (sigmoidin küçük $k$ için düzleştirme yeteneğ
 
 ## 5.4 Ölçeklendirme
 
-`06_Scaling.ipynb` üç model boyutunu tarar (küçük $d{=}64$/2 katman/4 kafa, orta $d{=}128$/2/4, büyük $d{=}256$/2/8) ve şaşkınlık, parametre sayısı ile duvar saatini kaydeder; öğrenilen kapı her ölçekte niteliksel olarak benzerdir ve mekanizmanın kapasiteler arasında aktarıldığını düşündürür.
+`notebooks/06_Scaling.ipynb` üç model boyutunu tarar (küçük $d{=}64$/2 katman/4 kafa, orta $d{=}128$/2/4, büyük $d{=}256$/2/8) ve şaşkınlık, parametre sayısı ile duvar saatini kaydeder; öğrenilen kapı her ölçekte niteliksel olarak benzerdir ve mekanizmanın kapasiteler arasında aktarıldığını düşündürür.
 
 # 6. Tartışma
 

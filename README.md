@@ -35,12 +35,12 @@ Every config is a YAML file under `configs/`; see
 
 ```bash
 # Chat with a trained model (streaming output in the terminal):
-ddm-chat --checkpoint checkpoints/ddm_seed0.pt
+ddm-chat --checkpoint checkpoints/ddm_seed0.safetensors
 ```
 
 ## Reproducing the experiments
 
-The six notebooks under `notebooks/` reproduce the whole study end to end:
+The seven notebooks under `notebooks/` reproduce the whole study end to end:
 
 | Notebook | Contents |
 |---|---|
@@ -70,7 +70,7 @@ coverage ≥ 90%).
 
 ```
 configs/       experiment YAML configs
-notebooks/     01-06 executable analysis notebooks
+notebooks/     01-07 executable analysis notebooks
 paper/         paper.md, paper.pdf, build.sh / build.py
 src/ddm/       package: config, models, data, train, generate, viz, cli, chat
 tests/         pytest suite

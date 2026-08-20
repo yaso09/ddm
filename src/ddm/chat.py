@@ -27,8 +27,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--checkpoint",
-        default="checkpoints/ddm_seed0.pt",
-        help="Path to a checkpoint (default: checkpoints/ddm_seed0.pt).",
+        default="checkpoints/ddm_seed0.safetensors",
+        help="Path to a checkpoint (default: checkpoints/ddm_seed0.safetensors).",
     )
     parser.add_argument(
         "--max-new-tokens", type=int, default=128, help="Tokens per turn."

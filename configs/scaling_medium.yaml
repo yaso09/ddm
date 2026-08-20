@@ -8,7 +8,7 @@ learn_g: true
 dropout: 0.0
 batch_size: 32
 lr: 3.0e-4
-epochs: 3
+epochs: 14
 seeds: [0]
 dataset_name: wikitext
 dataset_config: wikitext-2-raw-v1

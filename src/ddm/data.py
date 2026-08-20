@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -39,11 +40,22 @@ def _hf_parquet_urls(repo_id: str, config: str, split: str) -> list[str]:
         List of parquet file URLs for that split (usually one).
     """
     api_url = f"https://huggingface.co/api/datasets/{repo_id}/parquet/{config}/{split}"
-    with urllib.request.urlopen(api_url, timeout=60) as resp:
-        return json.loads(resp.read())
+    try:
+        with urllib.request.urlopen(api_url, timeout=60) as resp:
+            return json.loads(resp.read())
+    except (urllib.error.HTTPError, urllib.error.URLError) as exc:
+        print(
+            f"[data] parquet API unavailable ({type(exc).__name__}: {exc}); "
+            "using auto-conversion resolve URLs..."
+        )
+        base = (
+            f"https://huggingface.co/datasets/{repo_id}/resolve/"
+            f"refs%2Fconvert%2Fparquet/{config}/{split}"
+        )
+        return [f"{base}/{i:04d}.parquet" for i in range(8)]
 
 
-def _download_parquet(url: str, dest: Path) -> Path:
+def _download_parquet(url: str, dest: Path) -> Path | None:
     """Download a parquet file if it is not cached yet.
 
     Args:
@@ -51,14 +63,19 @@ def _download_parquet(url: str, dest: Path) -> Path:
         dest: Local destination path.
 
     Returns:
-        The local file path.
+        The local file path, or ``None`` when the URL does not exist
+        (e.g. a missing auto-conversion part).
     """
     dest.parent.mkdir(parents=True, exist_ok=True)
     if dest.exists():
         return dest
     tmp = dest.with_suffix(dest.suffix + ".tmp")
-    with urllib.request.urlopen(url, timeout=300) as resp, open(tmp, "wb") as fh:
-        shutil.copyfileobj(resp, fh)
+    try:
+        with urllib.request.urlopen(url, timeout=300) as resp, open(tmp, "wb") as fh:
+            shutil.copyfileobj(resp, fh)
+    except (urllib.error.HTTPError, urllib.error.URLError):
+        tmp.unlink(missing_ok=True)
+        return None
     tmp.rename(dest)
     return dest
 
@@ -149,7 +166,9 @@ def _load_dataset(
             local_paths = []
             for i, url in enumerate(urls):
                 dest = Path(cache_dir) / f"{safe_name}_{config_for_api}_{split}_{i}.parquet"
-                local_paths.append(str(_download_parquet(url, dest)))
+                local = _download_parquet(url, dest)
+                if local is not None:
+                    local_paths.append(str(local))
             data_files[split] = local_paths
         return load_dataset("parquet", data_files=data_files, cache_dir=cache_dir)
 

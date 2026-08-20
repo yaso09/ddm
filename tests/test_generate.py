@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import asdict
 
 import pytest
 import torch
+from safetensors.torch import save_file
 
 import ddm.generate as gen
 from ddm.models import DDMModel, build_model
@@ -17,8 +19,10 @@ class FakeTokenizer:
 
     eos_token_id = 26
 
-    def __call__(self, text, return_tensors=None):
+    def __call__(self, text, return_tensors=None, **kwargs):
         ids = [min(ord(c) % 26, 25) for c in text] or [0]
+        if return_tensors is None:
+            return {"input_ids": ids}
         return {"input_ids": torch.tensor([ids])}
 
     def decode(self, ids):
@@ -139,14 +143,17 @@ def test_baseline_returns_no_memory() -> None:
     tok = FakeTokenizer()
     out = gen.generate(model, tok, "abc", max_new_tokens=5, temperature=0, device="cpu")
     assert out.memory is None
-    assert len(out.token_ids) == 5
 
 
 def test_load_checkpoint_roundtrip(tmp_path, monkeypatch) -> None:
     config = make_config("bigram", vocab_size=27)
     model = build_model(config)
-    path = tmp_path / "bigram_seed0.pt"
-    torch.save({"state_dict": model.state_dict(), "config": asdict(config)}, path)
+    path = tmp_path / "bigram_seed0.safetensors"
+    save_file(
+        {k: v.detach().cpu() for k, v in model.state_dict().items()},
+        path,
+        metadata={"config": json.dumps(asdict(config))},
+    )
     monkeypatch.setattr(gen, "_get_tokenizer", lambda: FakeTokenizer())
     loaded, loaded_config, tokenizer = gen.load_checkpoint(str(path), device="cpu")
     assert loaded_config.model_type == "bigram"

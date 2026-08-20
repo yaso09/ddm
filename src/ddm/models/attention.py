@@ -39,7 +39,7 @@ class DistanceAwareAttention(nn.Module):
         d_model: Hidden dimension.
         n_heads: Number of attention heads (ALiBi slope per head).
         learn_g: If True, g(k) is learned; if False it is frozen to ``1/k``
-            (ablation, see ``test_ablation_equivalence.py``).
+            (ablation, see ``tests/test_ablation_equivalence.py``).
         max_seq_len: Maximum sequence length; used to normalize distances.
         dropout: Dropout applied to the attention weights.
     """

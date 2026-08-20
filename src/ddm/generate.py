@@ -6,6 +6,7 @@ both call :func:`generate` / :func:`load_checkpoint`.
 
 from __future__ import annotations
 
+import json
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -13,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import torch
+from safetensors import safe_open
 
 from ddm.config import DDMConfig
 from ddm.data import _get_tokenizer
@@ -127,8 +129,6 @@ def _stream_safe_text(
 
     if len(decoded) <= len(streamed_text):
         return streamed_text
-
-    new_text = decoded[len(streamed_text):]
 
     # Find the longest suffix of the current decoded text that is also
     # a prefix of the stop sequence.
@@ -356,7 +356,7 @@ def load_checkpoint(
     """Load a checkpoint written by ``run_training``.
 
     Args:
-        path: Path to the ``{model}_seed{n}.pt`` file.
+        path: Path to the ``{model}_seed{n}.safetensors`` file.
         device: Compute device; empty string auto-detects.
 
     Returns:
@@ -365,20 +365,17 @@ def load_checkpoint(
     """
     device = _resolve_device(device)
 
-    raw = torch.load(
-        path,
-        map_location=device,
-        weights_only=True,
-    )
-
-    config = DDMConfig(
-        **raw["config"],
-    )
+    with safe_open(path, framework="pt", device=str(device)) as fh:
+        config = DDMConfig(
+            **json.loads(fh.metadata()["config"]),
+        )
+        keys = fh.keys()
+        state_dict = {k: fh.get_tensor(k) for k in keys}
 
     model = build_model(config)
 
     model.load_state_dict(
-        raw["state_dict"],
+        state_dict,
     )
 
     model.eval()
