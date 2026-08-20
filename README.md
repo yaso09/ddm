@@ -42,15 +42,15 @@ ddm-chat --checkpoint checkpoints/ddm_seed0.safetensors
 
 The seven notebooks under `notebooks/` reproduce the whole study end to end:
 
-| Notebook | Contents |
-|---|---|
-| `01_Theory.ipynb` | The chain rule, Markov assumption, and the distance decomposition |
-| `02_Implementation.ipynb` | DDM internals: gate MLP, ALiBi, segment memory, parameter accounting |
-| `03_Training.ipynb` | Train DDM, save checkpoints, plot the learned gate curves |
-| `04_Benchmark.ipynb` | Bigram vs 3-gram vs DDM vs Transformer (matched params), position buckets |
-| `05_Ablation.ipynb` | Learned gate vs frozen $1/k$ gate; head-wise Welch $t$-tests |
-| `06_Scaling.ipynb` | PPL / parameters / wall time across three model sizes |
-| `07_Chat.ipynb` | Chat with trained models: comparisons, sampling sweep, segment-memory demo, interactive widget |
+| Notebook | Contents | Run |
+|---|---|---|
+| `01_Theory.ipynb` | The chain rule, Markov assumption, and the distance decomposition | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yaso09/ddm/blob/master/notebooks/01_Theory.ipynb) |
+| `02_Implementation.ipynb` | DDM internals: gate MLP, ALiBi, segment memory, parameter accounting | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yaso09/ddm/blob/master/notebooks/02_Implementation.ipynb) |
+| `03_Training.ipynb` | Train DDM, save checkpoints, plot the learned gate curves | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yaso09/ddm/blob/master/notebooks/03_Training.ipynb) |
+| `04_Benchmark.ipynb` | Bigram vs 3-gram vs DDM vs Transformer (matched params), position buckets | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yaso09/ddm/blob/master/notebooks/04_Benchmark.ipynb) |
+| `05_Ablation.ipynb` | Learned gate vs frozen $1/k$ gate; head-wise Welch $t$-tests | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yaso09/ddm/blob/master/notebooks/05_Ablation.ipynb) |
+| `06_Scaling.ipynb` | PPL / parameters / wall time across three model sizes | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yaso09/ddm/blob/master/notebooks/06_Scaling.ipynb) |
+| `07_Chat.ipynb` | Chat with trained models: comparisons, sampling sweep, segment-memory demo, interactive widget | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/yaso09/ddm/blob/master/notebooks/07_Chat.ipynb) |
 
 Results tables are written to `checkpoints/benchmark_results.md` and
 `checkpoints/scaling_results.md`.
